@@ -98,7 +98,7 @@ function aplicarOpcionNuclear(input: string): string {
   out = out.replace(/\*Pieza.*?:\*/gi, "*Piezas:*");
 
   // Sweep final de balas perdidas que pudieron haberse colado.
-  out = out.replace(/[•·▪▫◦►➤★]/g, "-");
+  out = out.replace(/[•·▪▫◦►➤★]/g, "");
 
   return out;
 }

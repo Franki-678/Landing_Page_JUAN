@@ -62,7 +62,7 @@ const PIEZAS_GLITCH_END = /Pieza[\u2022\u00B7\u25AA\u25AB\u25E6](?=:|\s|$)/gi;
  * chat y / o inyectarlo en un link wa.me.
  *
  * Operaciones (en orden):
- *  1. Arregla glitches específicos conocidos (P•ezas → Piezas).
+ *  1. Arregla glitches específicos conocidos (P•ezas → Piezas / R•epuestos → Repuestos).
  *  2. Reemplaza bullets unicode al inicio de líneas por "- ".
  *  3. Elimina cualquier bullet unicode residual dentro de líneas.
  *  4. Colapsa saltos de línea excesivos (3+ → 2).
@@ -76,8 +76,15 @@ export function sanitizarTexto(input: string): string {
   let out = input;
 
   // 1. Glitches específicos
+  // "Piezas" backward-compat (LLM puede seguir usando el label viejo)
   out = out.replace(PIEZAS_GLITCH, "Piezas");
   out = out.replace(PIEZAS_GLITCH_END, "Piezas");
+  // Normalizar cualquier variante rota de "Repuestos Solicitados"
+  // El LLM puede emitir "R•epuestos", "Repuest•s", etc.
+  out = out.replace(/R[•·▪▫]epuestos/gi, "Repuestos");
+  out = out.replace(/Repuest[•·▪▫]s/gi, "Repuestos");
+  // Si el LLM volvió a usar *Piezas:* (label viejo) → renombrar
+  out = out.replace(/\*Piezas:\*/g, "*Repuestos Solicitados:*");
 
   // 2. Bullets unicode al inicio de línea → "- "
   //    (con o sin espacios previos)
