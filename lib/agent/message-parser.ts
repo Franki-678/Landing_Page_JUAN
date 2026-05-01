@@ -151,11 +151,11 @@ export function contieneVedidoListo(raw: string): boolean {
 /**
  * Valida que el contenido de un pedido parsado tenga los campos mínimos.
  * Heurística básica: debe tener información del vehículo y al menos una pieza.
+ * Case-insensitive porque el template puede usar "VEHÍCULO" o "Vehículo".
  */
 export function validarPedido(contenido: string): boolean {
-  const tieneVehiculo =
-    contenido.includes("Vehículo") || contenido.includes("🚗");
-  const tienePiezas =
-    contenido.includes("Piezas") || contenido.includes("📦");
+  const upper = contenido.toUpperCase();
+  const tieneVehiculo = upper.includes("VEHÍCULO") || upper.includes("VEHICULO");
+  const tienePiezas = upper.includes("PIEZAS");
   return tieneVehiculo && tienePiezas;
 }
