@@ -74,8 +74,38 @@ function buildSummary(messages: Message[]): string {
   ].join("\n");
 }
 
+/**
+ * Opción Nuclear (frontend, último filtro antes de wa.me):
+ *
+ * Aunque el sanitizer general ya corre del lado del server (parser) y del
+ * cliente (en buildSummary), seguimos viendo casos donde el LLM emite
+ * codepoints unicode "exóticos" que esquivan los regex específicos. Acá
+ * aplicamos comodines duros sobre los labels más afectados (*Piezas:*,
+ * *Pieza...:*) y un sweep final de balas perdidas. Es deliberadamente
+ * agresivo: preferimos reescribir de más el label antes que dejar pasar
+ * una variante rota al payload de WhatsApp.
+ *
+ * Ojo: estos replace SOLO se aplican al string que termina en wa.me, no
+ * al render del chat, así que no afectan la UX en pantalla.
+ */
+function aplicarOpcionNuclear(input: string): string {
+  let out = input;
+
+  // Wildcards sobre el label de Piezas — cualquier cosa entre *P...zas:*
+  // o *Pieza...:* se colapsa al label canónico, sin importar qué glyph
+  // unicode haya metido el modelo en el medio.
+  out = out.replace(/\*P.*?zas:\*/gi, "*Piezas:*");
+  out = out.replace(/\*Pieza.*?:\*/gi, "*Piezas:*");
+
+  // Sweep final de balas perdidas que pudieron haberse colado.
+  out = out.replace(/[•·▪▫◦►➤★]/g, "-");
+
+  return out;
+}
+
 function buildWhatsAppLink(summary: string): string {
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(summary)}`;
+  const finalWAtext = aplicarOpcionNuclear(summary);
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(finalWAtext)}`;
 }
 
 export default function AIChat() {
