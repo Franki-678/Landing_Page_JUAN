@@ -117,13 +117,22 @@ export default function AIChat() {
   const [error, setError] = useState<string | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const prevMessagesLengthRef = useRef<number>(messages.length);
 
-  // Autoscroll al fondo cuando llega un mensaje nuevo
+  // Autoscroll al fondo SOLO cuando se agrega un mensaje nuevo.
+  // En el mount inicial no hacemos nada: la página tiene que cargar arriba
+  // de todo y no robarle el scroll al usuario. Solo disparamos cuando la
+  // longitud del array de mensajes crece respecto al render anterior.
   useEffect(() => {
+    const prevLen = prevMessagesLengthRef.current;
+    const currLen = messages.length;
+    prevMessagesLengthRef.current = currLen;
+
+    if (currLen <= prevLen) return; // mount inicial o reset, no scrollear
     const el = scrollRef.current;
     if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, [messages, loading]);
+  }, [messages]);
 
   const summary = useMemo(
     () => serverSummary ?? buildSummary(messages),
@@ -260,7 +269,6 @@ export default function AIChat() {
               placeholder="Ej: Necesito paragolpes delantero VW Gol Trend 2015..."
               className="flex-1 rounded-2xl bg-white/90 border border-white/90 px-4 py-3 text-sm text-foreground placeholder:text-foreground/40 outline-none focus:ring-2 focus:ring-brand-300/60 focus:border-brand-300 transition"
               disabled={loading}
-              autoFocus
             />
             <button
               type="submit"
