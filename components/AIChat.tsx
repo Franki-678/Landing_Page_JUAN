@@ -118,6 +118,8 @@ export default function AIChat() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevMessagesLengthRef = useRef<number>(messages.length);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const prevLoadingRef = useRef<boolean>(false);
 
   // Autoscroll al fondo SOLO cuando se agrega un mensaje nuevo.
   // En el mount inicial no hacemos nada: la página tiene que cargar arriba
@@ -133,6 +135,18 @@ export default function AIChat() {
     if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages]);
+
+  // Auto-focus: cuando el bot termina de responder (loading true→false)
+  // y ya hay historial de conversación. NO en el mount inicial.
+  useEffect(() => {
+    const wasLoading = prevLoadingRef.current;
+    prevLoadingRef.current = loading;
+    if (wasLoading && !loading && messages.length > 1) {
+      // Pequeño timeout para que React termine el render del nuevo mensaje
+      const id = setTimeout(() => inputRef.current?.focus(), 50);
+      return () => clearTimeout(id);
+    }
+  }, [loading, messages.length]);
 
   const summary = useMemo(
     () => serverSummary ?? buildSummary(messages),
