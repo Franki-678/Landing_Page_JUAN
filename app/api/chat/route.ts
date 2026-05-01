@@ -38,6 +38,15 @@ import {
 
 export const runtime = "nodejs";
 
+/**
+ * Tope de duración del request en segundos. Vercel mata la función al pasarse.
+ * Hobby: máx 60s | Pro: 300s | Enterprise: 900s.
+ * Acá pongo el techo del plan Hobby para no romper nada en deploy gratuito.
+ * Un turno típico de Claude + Tool Calling tarda 1-3s; este margen cubre
+ * picos de latencia de Anthropic y el loop tool_use → tool_result.
+ */
+export const maxDuration = 60;
+
 /** Modelo a usar. Haiku es el más rápido y económico de Anthropic. */
 const MODEL = "claude-haiku-4-5-20251001";
 
