@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { sanitizarTexto } from "@/lib/agent/sanitizer";
 
 /* ============================================================
    AIChat — Componente público (sin login)
@@ -63,10 +64,10 @@ function buildSummary(messages: Message[]): string {
     .reverse()
     .find((m) => m.role === "assistant" && m.id !== "welcome");
 
-  const cuerpo = lastAssistant?.content.trim() ?? "(Pedido sin detalle)";
+  const cuerpo = sanitizarTexto(lastAssistant?.content ?? "(Pedido sin detalle)");
 
   return [
-    "¡Hola RC Repuestos! 👋",
+    "Hola RC Repuestos!",
     "Confirmo este pedido armado por la IA:",
     "",
     cuerpo,

@@ -6,8 +6,13 @@
  * 2. Extraer el contenido del pedido estructurado.
  * 3. Limpiar el reply visible al taller (sin el tag técnico).
  * 4. Generar el mensaje de WhatsApp final.
- * 5. Exportar el tipo de respuesta que espera el frontend (AIChat.tsx).
+ * 5. Aplicar el sanitizer (lib/agent/sanitizer.ts) sobre todo lo que
+ *    sale del LLM, para neutralizar glitches tipográficos como "P•ezas:"
+ *    o bullets unicode raros.
+ * 6. Exportar el tipo de respuesta que espera el frontend (AIChat.tsx).
  */
+
+import { sanitizarTexto } from "./sanitizer";
 
 // ─────────────────────────────────────────────────────────────
 // Tipos
@@ -62,7 +67,7 @@ export function parseLLMResponse(rawResponse: string): ChatApiResponse {
   if (!pedido) {
     // Caso B: conversación normal
     return {
-      reply: limpiarRespuesta(rawResponse),
+      reply: sanitizarTexto(limpiarRespuesta(rawResponse)),
     };
   }
 
@@ -71,9 +76,12 @@ export function parseLLMResponse(rawResponse: string): ChatApiResponse {
   const mensajeWhatsApp = armarMensajeWhatsApp(pedido.contenidoRaw);
 
   return {
-    reply: replyVisible || "¡Listo! 🎉 Tu pedido está armado. Apretá el botón verde para enviárselo por WhatsApp.",
+    reply: sanitizarTexto(
+      replyVisible ||
+        "¡Listo! Tu pedido está armado. Apretá el botón verde para enviárselo por WhatsApp."
+    ),
     ready: true,
-    summary: mensajeWhatsApp,
+    summary: sanitizarTexto(mensajeWhatsApp),
   };
 }
 
