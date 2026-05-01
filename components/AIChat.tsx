@@ -44,21 +44,32 @@ function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
-/** Construye un resumen "humano" del pedido a partir del historial.
- *  Es un fallback simple: si el backend manda `summary`, ese gana. */
+/**
+ * Construye el mensaje que se inyecta en el link de WhatsApp.
+ *
+ * Política (post-bug 2):
+ *  - PRIORIDAD 1: si el backend mandó `summary` (típicamente el contenido del
+ *    tag <PEDIDO_LISTO> ya formateado), usar ESO. Es lo mejor para el dueño.
+ *  - PRIORIDAD 2: tomar el ÚLTIMO mensaje del asistente, donde la IA armó
+ *    el resumen confirmando marca/modelo/año/pieza/atributos.
+ *  - NUNCA inyectar el historial crudo del usuario ("sii", "nopp", "el negro").
+ *    Esos mensajes solo tienen sentido en el contexto de la conversación.
+ *
+ *  En ambos casos prefijamos un encabezado fijo para que el dueño entienda
+ *  de dónde viene el mensaje.
+ */
 function buildSummary(messages: Message[]): string {
-  const userTurns = messages
-    .filter((m) => m.role === "user")
-    .map((m) => `• ${m.content.trim()}`)
-    .join("\n");
+  const lastAssistant = [...messages]
+    .reverse()
+    .find((m) => m.role === "assistant" && m.id !== "welcome");
+
+  const cuerpo = lastAssistant?.content.trim() ?? "(Pedido sin detalle)";
 
   return [
     "¡Hola RC Repuestos! 👋",
-    "Vengo desde la web con un pedido armado por la IA:",
+    "Confirmo este pedido armado por la IA:",
     "",
-    userTurns || "• (Sin detalles cargados aún)",
-    "",
-    "¿Me confirman disponibilidad y precio? ¡Gracias!",
+    cuerpo,
   ].join("\n");
 }
 

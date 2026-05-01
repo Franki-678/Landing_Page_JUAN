@@ -155,9 +155,10 @@ export function precargarCatalogo(): void {
  * Todos los parámetros son opcionales: si no pasás nada, devuelve los
  * primeros N resultados de cualquier marca (poco útil, pero válido).
  *
- * Las búsquedas son tolerantes:
+ * Las búsquedas son tolerantes (Fuzzy Search):
  *  - case-insensitive (volkswagen / VOLKSWAGEN / Volkswagen).
  *  - sin tildes ni puntuación (citroën / citroen).
+ *  - sin espacios ni guiones: "S10" matchea "PICK-UP S-10", "C3" matchea "C 3".
  *  - parciales: "gol" matchea "GOL", "GOL TREND", "GOL COUNTRY", etc.
  *
  * @returns Un objeto `ResultadoBusqueda` listo para serializar y mandarle al
@@ -169,8 +170,8 @@ export function buscarRepuesto(
   anio?: string
 ): ResultadoBusqueda {
   const data = getCatalogo();
-  const marcaQ = marca ? normalizar(marca) : "";
-  const modeloQ = modelo ? normalizar(modelo) : "";
+  const marcaQ = marca ? fuzzyKey(marca) : "";
+  const modeloQ = modelo ? fuzzyKey(modelo) : "";
   const anioQ = anio?.trim() ?? "";
 
   const coincidencias: Coincidencia[] = [];
@@ -178,10 +179,10 @@ export function buscarRepuesto(
   let truncado = false;
 
   outer: for (const [marcaKey, marcaEntry] of Object.entries(data)) {
-    if (marcaQ && !normalizar(marcaKey).includes(marcaQ)) continue;
+    if (marcaQ && !fuzzyKey(marcaKey).includes(marcaQ)) continue;
 
     for (const [modeloKey, anoMap] of Object.entries(marcaEntry.modelos)) {
-      if (modeloQ && !normalizar(modeloKey).includes(modeloQ)) continue;
+      if (modeloQ && !fuzzyKey(modeloKey).includes(modeloQ)) continue;
 
       for (const [anioKey, versiones] of Object.entries(anoMap)) {
         if (anioQ && anioKey !== anioQ) continue;
@@ -225,11 +226,11 @@ export function listarMarcas(): string[] {
   return Object.keys(getCatalogo()).sort();
 }
 
-/** Devuelve los modelos disponibles para una marca dada. */
+/** Devuelve los modelos disponibles para una marca dada (fuzzy match). */
 export function listarModelos(marca: string): string[] {
   const data = getCatalogo();
-  const marcaQ = normalizar(marca);
-  const key = Object.keys(data).find((k) => normalizar(k) === marcaQ);
+  const marcaQ = fuzzyKey(marca);
+  const key = Object.keys(data).find((k) => fuzzyKey(k) === marcaQ);
   if (!key) return [];
   return Object.keys(data[key].modelos).sort();
 }
@@ -262,15 +263,26 @@ export function statsCatalogo(): {
 // Internos
 // ─────────────────────────────────────────────────────────────
 
-/** Normaliza un string para comparar: lowercase, sin tildes, sin puntuación. */
-function normalizar(s: string): string {
+/**
+ * Clave canónica para Fuzzy Search de marcas/modelos.
+ * Quita tildes, lowercase y elimina TODO carácter que no sea letra
+ * o dígito (espacios, guiones, puntos, paréntesis, slashes, etc.).
+ *
+ * Ejemplos:
+ *   "S10"            → "s10"
+ *   "PICK-UP S-10"   → "pickups10"      ⊃ "s10" ✅
+ *   "Citroën C 3"    → "citroenc3"      ⊃ "c3"  ✅
+ *   "Mercedes-Benz"  → "mercedesbenz"
+ *
+ * Esto es lo que permite que "S10" matchee "PICK-UP S-10" sin tener que
+ * mantener un diccionario de sinónimos.
+ */
+function fuzzyKey(s: string): string {
   return s
     .toLowerCase()
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+    .replace(/[^a-z0-9]/g, "");
 }
 
 interface ResumenInput {
