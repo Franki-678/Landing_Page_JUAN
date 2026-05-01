@@ -65,7 +65,8 @@ const PIEZAS_GLITCH_END = /Pieza[\u2022\u00B7\u25AA\u25AB\u25E6](?=:|\s|$)/gi;
  *  1. Arregla glitches específicos conocidos (P•ezas → Piezas / R•epuestos → Repuestos).
  *  2. Reemplaza bullets unicode al inicio de líneas por "- ".
  *  3. Elimina cualquier bullet unicode residual dentro de líneas.
- *  4. Colapsa saltos de línea excesivos (3+ → 2).
+ *  4a. Elimina líneas [Pendientes en cola: ...] (rastreo interno del agente).
+ *  4b. Colapsa saltos de línea excesivos (3+ → 2).
  *  5. Detecta y elimina duplicación inmediata del texto completo
  *     (a veces el modelo imprime el bloque dos veces seguidas).
  *  6. Trim final.
@@ -95,6 +96,10 @@ export function sanitizarTexto(input: string): string {
   //    castellano, pero como el prompt los prohíbe, los normalizamos a "-".
   out = out.replace(/[\u2014\u2013]/g, "-");
   out = out.replace(BULLET_REGEX, "");
+
+  // 4a. Eliminar líneas [Pendientes en cola: ...] — son rastreo interno,
+  //     no deben ir al payload de WhatsApp ni mostrarse en resúmenes.
+  out = out.replace(/^\[Pendientes en cola:[^\]]*\]\s*$/gm, "").trim();
 
   // 4. Saltos de línea excesivos
   out = out.replace(/\n{3,}/g, "\n\n");
